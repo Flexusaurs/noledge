@@ -1,7 +1,8 @@
 package state
 
 import (
-	"crypto/sha256"
+	"github.com/ethereum/go-ethereum/common"
+	"golang.org/x/crypto/sha3"
 )
 
 type MerkleHasher interface {
@@ -9,15 +10,24 @@ type MerkleHasher interface {
 	HashLeaf(data []byte) []byte
 }
 
-type SHA256Hasher struct{}
+type Keccak256Hasher struct{}
 
-func (h *SHA256Hasher) Hash(left, right []byte) []byte {
-	concat := append(left, right...)
-	hash := sha256.Sum256(concat)
-	return hash[:]
-} //array to slice conversion
+func (h *Keccak256Hasher) Hash(left, right []byte) []byte {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(left)
+	hasher.Write(right)
 
-func (h *SHA256Hasher) HashLeaf(data []byte) []byte {
-	hash := sha256.Sum256(data)
-	return hash[:]
+	return hasher.Sum(nil)
+}
+
+func (h *Keccak256Hasher) HashLeaf(data []byte) []byte {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(data)
+	return hasher.Sum(nil)
+}
+
+func HashAddress(addr common.Address) []byte {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(addr.Bytes())
+	return hasher.Sum(nil)
 }

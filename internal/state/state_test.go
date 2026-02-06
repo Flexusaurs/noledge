@@ -6,7 +6,7 @@ import (
 )
 
 func TestEmptyTreeRootDete(t *testing.T) {
-	hasher := &SHA256Hasher{}
+	hasher := &Keccak256Hasher{}
 	smt1 := NewSparseMerkleTree(16, hasher)
 	smt2 := NewSparseMerkleTree(16, hasher)
 
@@ -16,7 +16,7 @@ func TestEmptyTreeRootDete(t *testing.T) {
 }
 
 func TestSingleUpdateChangesRoot(t *testing.T) {
-	hasher := &SHA256Hasher{}
+	hasher := &Keccak256Hasher{}
 	smt := NewSparseMerkleTree(16, hasher)
 
 	initialRoot := smt.Root()
@@ -31,7 +31,7 @@ func TestSingleUpdateChangesRoot(t *testing.T) {
 }
 
 func TestDeterministicUpdate(t *testing.T) {
-	hasher := &SHA256Hasher{}
+	hasher := &Keccak256Hasher{}
 	smt1 := NewSparseMerkleTree(16, hasher)
 	smt2 := NewSparseMerkleTree(16, hasher)
 
@@ -46,7 +46,7 @@ func TestDeterministicUpdate(t *testing.T) {
 }
 
 func TestMultipleUpdatesOrderMatters(t *testing.T) {
-	hasher := &SHA256Hasher{}
+	hasher := &Keccak256Hasher{}
 	smt := NewSparseMerkleTree(16, hasher)
 
 	leaf1 := hasher.HashLeaf([]byte("account1"))
