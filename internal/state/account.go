@@ -1,9 +1,13 @@
 package state
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 type Account struct {
 	Address common.Address //20 byte, ETH style length
-	Balance uint64
+	Balance *big.Int
 	Nonce   uint64
 }

@@ -12,22 +12,22 @@ type MerkleHasher interface {
 
 type Keccak256Hasher struct{}
 
-func (h *Keccak256Hasher) Hash(left, right []byte) []byte {
+func keccak(data ...[]byte) []byte {
 	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(left)
-	hasher.Write(right)
-
+	for _, b := range data {
+		hasher.Write(b)
+	}
 	return hasher.Sum(nil)
+}
+
+func (h *Keccak256Hasher) Hash(left, right []byte) []byte {
+	return keccak(left, right)
 }
 
 func (h *Keccak256Hasher) HashLeaf(data []byte) []byte {
-	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(data)
-	return hasher.Sum(nil)
+	return keccak(data)
 }
 
 func HashAddress(addr common.Address) []byte {
-	hasher := sha3.NewLegacyKeccak256()
-	hasher.Write(addr.Bytes())
-	return hasher.Sum(nil)
+	return keccak(addr.Bytes())
 }

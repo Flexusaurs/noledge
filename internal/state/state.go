@@ -1,6 +1,8 @@
 package state
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,18 +18,18 @@ func NewRollupState(tree *SparseMerkleTree) *RollupState {
 	}
 }
 
-func (s *RollupState) GetAccount(addr common.Address) (*Account, error) {
+func (s *RollupState) GetAccount(addr common.Address) *Account {
 	acc, ok := s.accounts[addr]
 
 	if !ok {
 		return &Account{
 			Address: addr,
-			Balance: 0,
+			Balance: big.NewInt(0),
 			Nonce:   0,
-		}, nil
+		}
 	}
 
-	return acc, nil
+	return acc
 
 }
 
@@ -37,4 +39,7 @@ func (s *RollupState) SetAccount(addr common.Address, acc *Account) error {
 	serialized := SerializeAccount(acc)
 	leafHash := s.tree.hasher.HashLeaf(serialized)
 	key := HashAddress(addr)
+
+	s.tree.Update(key, leafHash)
+	return nil
 }
