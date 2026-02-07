@@ -2,63 +2,109 @@ package state
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
-func TestEmptyTreeRootDete(t *testing.T) {
-	hasher := &SHA256Hasher{}
-	smt1 := NewSparseMerkleTree(16, hasher)
-	smt2 := NewSparseMerkleTree(16, hasher)
+func newTestState() *RollupState {
+	hasher := &Keccak256Hasher{}
+	tree := NewSparseMerkleTree(256, hasher)
+	return NewRollupState(tree)
+}
 
-	if !bytes.Equal(smt1.Root(), smt2.Root()) {
-		t.Fatal("empty roots MUST be identical")
+func TestNewAccountInit(t *testing.T) {
+	state := newTestState()
+	addr := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	acc := state.GetAccount(addr)
+
+	if acc.Nonce != 0 {
+		t.Fatalf("expected nonce 0, got %d", acc.Nonce)
+	}
+
+	if acc.Balance.Cmp(big.NewInt(0)) != 0 {
+		t.Fatalf("expected balance 0")
 	}
 }
 
-func TestSingleUpdateChangesRoot(t *testing.T) {
-	hasher := &SHA256Hasher{}
-	smt := NewSparseMerkleTree(16, hasher)
+func TestSetAccountUpdatesRoot(t *testing.T) {
+	state := newTestState()
 
-	initialRoot := smt.Root()
-	leaf := hasher.HashLeaf([]byte("account1"))
-	smt.Update(42, leaf)
+	addr := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
-	newRoot := smt.Root()
+	acc := &Account{
+		Address: addr,
+		Balance: big.NewInt(1000),
+		Nonce:   1,
+	}
+
+	initialRoot := state.tree.Root()
+	state.SetAccount(addr, acc)
+	newRoot := state.tree.Root()
+	fmt.Println(string(newRoot))
 
 	if bytes.Equal(initialRoot, newRoot) {
-		t.Fatal("root MUST change after update")
+		t.Fatal("state root did not change after account update")
 	}
 }
 
-func TestDeterministicUpdate(t *testing.T) {
-	hasher := &SHA256Hasher{}
-	smt1 := NewSparseMerkleTree(16, hasher)
-	smt2 := NewSparseMerkleTree(16, hasher)
+func TestDeterministicRoot(t *testing.T) {
+	addr := common.HexToAddress("0x3333333333333333333333333333333333333333")
 
-	leaf := hasher.HashLeaf([]byte("account1"))
+	buildState := func() []byte {
+		state := newTestState()
 
-	smt1.Update(42, leaf)
-	smt2.Update(42, leaf)
+		acc := &Account{
+			Address: addr,
+			Balance: big.NewInt(500),
+			Nonce:   2,
+		}
 
-	if !bytes.Equal(smt1.Root(), smt2.Root()) {
-		t.Fatal("same updates MUST produce identical results")
+		state.SetAccount(addr, acc)
+		return state.tree.Root()
+	}
+
+	_aroot := buildState()
+	fmt.Println("_aroot: ", string(_aroot))
+	_broot := buildState()
+	fmt.Println("_broot: ", string(_broot))
+
+	if !bytes.Equal(_aroot, _broot) {
+		t.Fatal("state roots are not deterministic")
 	}
 }
 
-func TestMultipleUpdatesOrderMatters(t *testing.T) {
-	hasher := &SHA256Hasher{}
-	smt := NewSparseMerkleTree(16, hasher)
+func TestMultipleAccounts(t *testing.T) {
+	state := newTestState()
 
-	leaf1 := hasher.HashLeaf([]byte("account1"))
-	leaf2 := hasher.HashLeaf([]byte("account2"))
+	_addra := common.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	_addrb := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 
-	smt.Update(10, leaf1)
-	root1 := smt.Root()
+	fmt.Println("_addra: ", _addra)
+	fmt.Println("_addrb: ", _addrb)
 
-	smt.Update(11, leaf2)
-	root2 := smt.Root()
+	_acca := &Account{
+		Address: _addra,
+		Balance: big.NewInt(1000),
+		Nonce:   0,
+	}
 
-	if bytes.Equal(root1, root2) {
-		t.Fatal("root MUST change after second update")
+	_accb := &Account{
+		Address: _addrb,
+		Balance: big.NewInt(2000),
+		Nonce:   0,
+	}
+
+	state.SetAccount(_addra, _acca)
+	rootAfterA := state.tree.Root()
+	fmt.Println("rootAfterA: ", string(rootAfterA))
+	state.SetAccount(_addrb, _accb)
+	rootAfterB := state.tree.Root()
+	fmt.Println("rootAfterB: ", string(rootAfterB))
+
+	if bytes.Equal(rootAfterA, rootAfterB) {
+		t.Fatal("root MUST change after adding second account")
 	}
 }
